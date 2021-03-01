@@ -7,9 +7,9 @@
 class DB
 {
     private string $server = 'localhost';
-    private string $db = 'live';
-    private string $user = 'root';
-    private string $pwd = '';
+    private string $db = 'exo192';
+    private string $user = 'dev';
+    private string $pwd = 'dev';
 
     private static PDO $dbInstance;
 
@@ -20,6 +20,7 @@ class DB
         try {
             self::$dbInstance = new PDO("mysql:host=$this->server;dbname=$this->db;charset=utf8", $this->user, $this->pwd);
             self::$dbInstance->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            self::$dbInstance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         }
         catch(PDOException $exception) {
             echo $exception->getMessage();
@@ -40,4 +41,77 @@ class DB
      * Avoid instance to be cloned.
      */
     public function __clone() {}
+
+    /**
+     * delete the last line of table user
+     */
+    public function delLastID(){
+
+        $bdd = self::getInstance();
+        $stat = $bdd->prepare("SELECT MAX(id) FROM user");
+        $state = $stat->execute();
+        if ($state) {
+            $result = $stat->fetch();            ;
+            $sql = "DELETE FROM user WHERE id = ".$result['MAX(id)'];
+            if ($bdd->exec($sql) !== false){
+                echo "ligne avec id ".$result['MAX(id)']." est supprimé";
+            }
+        }
+    }
+
+    public function truncate(){
+        $bdd = self::getInstance();
+        $stat = $bdd->prepare("TRUNCATE TABLE user");
+        $state = $stat->execute();
+        if ($state) {
+            echo "truncate ok";
+        }
+    }
+
+    public function requestUser($nom,$prenom,$rue,$numero,$cp,$ville,$pays,$mail){
+        $request = self::$dbInstance->prepare("
+        INSERT INTO exo192.user (nom,prenom,rue,numero,code_postal,ville,pays,mail)
+        VALUES (:nom,:prenom,:rue,:numero,:code_postal,:ville,:pays,:mail)                        
+    ");
+
+
+        $request->execute([
+            ':nom' => $nom,
+            ':prenom' => $prenom,
+            ':rue' => $rue,
+            ':numero' => $numero,
+            ':code_postal' => $cp,
+            ':ville' => $ville,
+            ':pays' => $pays,
+            ':mail' => $mail,
+        ]);
+    }
+
+    public function modData($table, $column , $value, $id){
+        $request = self::$dbInstance->prepare("
+        UPDATE exo192.$table  SET $column = '$value' WHERE id = $id
+    ");
+        $request->execute();
+    }
+
+    public function delTable($table){
+
+        $bdd = self::getInstance();
+        $stat = $bdd->prepare("DROP TABLE $table");
+        $state = $stat->execute();
+        if ($state) {
+            echo "drop table de $table ok";
+        }
+    }
+
+    public function delBDD($data){
+
+        $bdd = self::getInstance();
+        $stat = $bdd->prepare("DROP DATABASE ".$data);
+        $state = $stat->execute();
+        if ($state) {
+            echo "drop BDD de $data ok";
+        }
+    }
+
 }
